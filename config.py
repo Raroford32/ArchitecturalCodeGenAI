@@ -11,7 +11,7 @@ OPENROUTER_API_KEY = 'sk-or-v1-4a055154c166d606e1676859a98cbc2da5ef015c70328f293
 
 # Redis configuration
 REDIS_HOST = 'localhost'
-REDIS_PORT = 7755
+REDIS_PORT = 6379  # Changed to standard Redis port
 REDIS_DB = 0
 
 # Output directories
