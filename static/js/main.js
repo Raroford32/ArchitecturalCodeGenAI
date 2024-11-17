@@ -8,32 +8,72 @@ document.addEventListener('DOMContentLoaded', function() {
     const successMessage = document.getElementById('successMessage');
     const generateBtn = document.getElementById('generateBtn');
 
+    function showError(message) {
+        // Create or update error alert
+        let errorAlert = document.getElementById('errorAlert');
+        if (!errorAlert) {
+            errorAlert = document.createElement('div');
+            errorAlert.id = 'errorAlert';
+            errorAlert.className = 'alert alert-danger alert-dismissible fade show';
+            errorAlert.innerHTML = `
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error:</strong> <span id="errorMessage"></span>
+            `;
+            resultCard.querySelector('.card-body').insertBefore(errorAlert, resultCard.querySelector('.card-body').firstChild);
+        }
+        errorAlert.querySelector('#errorMessage').textContent = message;
+        errorAlert.style.display = 'block';
+    }
+
+    function hideError() {
+        const errorAlert = document.getElementById('errorAlert');
+        if (errorAlert) {
+            errorAlert.style.display = 'none';
+        }
+    }
+
+    function updateProgress(percent) {
+        progressBar.style.width = `${percent}%`;
+        progressBar.setAttribute('aria-valuenow', percent);
+    }
+
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        // Reset and show progress
+        // Reset UI state
         resultCard.style.display = 'block';
         outputContainer.style.display = 'none';
-        progressBar.style.width = '0%';
+        successMessage.style.display = 'none';
+        hideError();
+        updateProgress(0);
         generateBtn.disabled = true;
 
         try {
+            // Validate input
             const formData = new FormData(form);
-            progressBar.style.width = '20%';
+            const requirements = formData.get('requirements').trim();
+            if (!requirements) {
+                throw new Error('Please enter your requirements');
+            }
 
+            updateProgress(20);
+
+            // Send request
             const response = await fetch('/generate', {
                 method: 'POST',
                 body: formData
             });
 
-            progressBar.style.width = '70%';
+            updateProgress(70);
 
+            // Handle response
+            const data = await response.json();
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(data.error || 'An unexpected error occurred');
             }
 
-            const data = await response.json();
-            progressBar.style.width = '100%';
+            updateProgress(100);
 
             // Display results
             requirementsOutput.textContent = data.requirements;
@@ -43,7 +83,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred while generating code. Please try again.');
+            showError(error.message);
+            updateProgress(0);
         } finally {
             generateBtn.disabled = false;
         }
