@@ -3,3 +3,9 @@ requests
 redis
 letta
 chainlit
+email-validator
+flask
+flask-sqlalchemy
+psycopg2-binary
+agents
+tensorflow

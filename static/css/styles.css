@@ -1,0 +1,28 @@
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+.footer {
+    padding: 20px 0;
+    background-color: var(--bs-dark);
+    margin-top: auto;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.progress {
+    height: 25px;
+}
+
+#outputContainer {
+    display: none;
+}
