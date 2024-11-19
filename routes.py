@@ -23,18 +23,21 @@ def generate_code():
         # Input validation
         requirements = request.form.get('requirements')
         project_name = request.form.get('projectName')
+        language = request.form.get('language', 'python')
         
         if not requirements or not requirements.strip():
             return jsonify({'error': 'No requirements provided'}), 400
         if not project_name or not project_name.strip():
             return jsonify({'error': 'No project name provided'}), 400
+        if language not in CodeGenerationAgent.SUPPORTED_LANGUAGES:
+            return jsonify({'error': f'Unsupported language: {language}'}), 400
 
         # Initialize agents with error handling
         try:
             memory_agent = MemoryManagementAgent()
             req_agent = RequirementAnalysisAgent()
             arch_agent = ArchitecturalDesignAgent()
-            code_agent = CodeGenerationAgent(project_name=project_name)
+            code_agent = CodeGenerationAgent(project_name=project_name, language=language)
             integration_agent = IntegrationAgent()
         except Exception as e:
             logger.error(f"Agent initialization failed: {str(e)}\n{traceback.format_exc()}")

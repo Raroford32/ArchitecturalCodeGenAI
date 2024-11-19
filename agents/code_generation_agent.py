@@ -5,10 +5,18 @@ import json
 import re
 
 class CodeGenerationAgent:
-    def __init__(self, project_name=None):
+    SUPPORTED_LANGUAGES = {
+        'python': {'extension': '.py', 'needs_header': False},
+        'cpp': {'extension': '.cpp', 'header_extension': '.h', 'needs_header': True}
+    }
+
+    def __init__(self, project_name=None, language='python'):
         self.llm_client = LLMClient()
         self.memory_store = MemoryStore()
         self.project_name = self._sanitize_project_name(project_name) if project_name else 'default'
+        self.language = language.lower()
+        if self.language not in self.SUPPORTED_LANGUAGES:
+            raise ValueError(f"Unsupported language: {language}")
         self.output_dir = os.path.join('output', self.project_name, 'src')
 
     def _sanitize_project_name(self, name):
@@ -47,6 +55,9 @@ src/
 The following components were generated based on the provided requirements and architecture:
 
 {self._get_component_list()}
+
+## Language
+This project is generated in {self.language.upper()}.
 """
         readme_path = os.path.join('output', self.project_name, 'README.md')
         with open(readme_path, 'w') as f:
@@ -62,18 +73,57 @@ The following components were generated based on the provided requirements and a
         except:
             return 'No components information available'
 
+    def _get_file_name(self, component_name, is_header=False):
+        lang_config = self.SUPPORTED_LANGUAGES[self.language]
+        if is_header and lang_config['needs_header']:
+            return f"{component_name}{lang_config['header_extension']}"
+        return f"{component_name}{lang_config['extension']}"
+
     def generate_component_code(self, component):
-        prompt = (
-            f"You are a senior software developer. Write the complete source code for the following module.\n\n"
+        base_prompt = (
+            f"You are a senior software developer. Write the complete source code for the following module "
+            f"in {self.language.upper()}.\n\n"
             f"Module Name: {component['name']}\n"
             f"Description: {component['description']}\n"
             f"Dependencies: {', '.join(component.get('dependencies', []))}\n\n"
-            "Ensure the code is well-documented with comments, follows best practices, and includes necessary imports. "
-            "Provide the code in Python, and do not include any explanations or additional text."
         )
-        code = self.llm_client.generate_response(prompt)
-        file_name = component['file_name']
-        file_path = os.path.join(self.output_dir, file_name)
-        with open(file_path, 'w') as file:
-            file.write(code)
-        self.memory_store.save(f'code_{component["name"]}', code)
+
+        lang_config = self.SUPPORTED_LANGUAGES[self.language]
+        
+        if lang_config['needs_header']:
+            # Generate header file for C++
+            header_prompt = base_prompt + (
+                "Provide ONLY the header file (.h) with class/function declarations, "
+                "include guards, and necessary includes. Follow C++ best practices."
+            )
+            header_code = self.llm_client.generate_response(header_prompt)
+            header_file_name = self._get_file_name(component['name'], is_header=True)
+            header_path = os.path.join(self.output_dir, header_file_name)
+            with open(header_path, 'w') as file:
+                file.write(header_code)
+            
+            # Generate implementation file
+            impl_prompt = base_prompt + (
+                f"Provide ONLY the implementation file (.cpp) that implements the declarations "
+                f"from {header_file_name}. Include the header and provide all function/method implementations."
+            )
+            impl_code = self.llm_client.generate_response(impl_prompt)
+            impl_file_name = self._get_file_name(component['name'])
+            impl_path = os.path.join(self.output_dir, impl_file_name)
+            with open(impl_path, 'w') as file:
+                file.write(impl_code)
+            
+            self.memory_store.save(f'code_{component["name"]}_h', header_code)
+            self.memory_store.save(f'code_{component["name"]}_cpp', impl_code)
+        else:
+            # Generate single file for Python
+            prompt = base_prompt + (
+                "Ensure the code is well-documented with comments, follows best practices, "
+                "and includes necessary imports. Provide ONLY the code, no explanations."
+            )
+            code = self.llm_client.generate_response(prompt)
+            file_name = self._get_file_name(component['name'])
+            file_path = os.path.join(self.output_dir, file_name)
+            with open(file_path, 'w') as file:
+                file.write(code)
+            self.memory_store.save(f'code_{component["name"]}', code)
