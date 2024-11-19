@@ -10,6 +10,10 @@
             <div class="card-body">
                 <form id="requirementsForm">
                     <div class="mb-3">
+                        <label for="projectName" class="form-label">Project Name:</label>
+                        <input type="text" class="form-control" id="projectName" name="projectName" required pattern="[a-zA-Z0-9_-]+" title="Only letters, numbers, hyphens and underscores allowed">
+                    </div>
+                    <div class="mb-3">
                         <label for="requirements" class="form-label">Enter your requirements:</label>
                         <textarea class="form-control" id="requirements" name="requirements" rows="6" required></textarea>
                     </div>

@@ -22,15 +22,19 @@ def generate_code():
     try:
         # Input validation
         requirements = request.form.get('requirements')
+        project_name = request.form.get('projectName')
+        
         if not requirements or not requirements.strip():
             return jsonify({'error': 'No requirements provided'}), 400
+        if not project_name or not project_name.strip():
+            return jsonify({'error': 'No project name provided'}), 400
 
         # Initialize agents with error handling
         try:
             memory_agent = MemoryManagementAgent()
             req_agent = RequirementAnalysisAgent()
             arch_agent = ArchitecturalDesignAgent()
-            code_agent = CodeGenerationAgent()
+            code_agent = CodeGenerationAgent(project_name=project_name)
             integration_agent = IntegrationAgent()
         except Exception as e:
             logger.error(f"Agent initialization failed: {str(e)}\n{traceback.format_exc()}")
@@ -80,7 +84,7 @@ def generate_code():
             'status': 'success',
             'requirements': detailed_requirements,
             'architecture': architecture,
-            'message': 'Code generated successfully'
+            'message': f'Code generated successfully in output/{project_name}/src directory'
         })
         response.headers['Content-Type'] = 'application/json'
         return response
