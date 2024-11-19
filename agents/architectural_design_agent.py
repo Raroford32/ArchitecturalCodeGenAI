@@ -18,7 +18,7 @@ class ArchitecturalDesignAgent:
             "- File structure and relationships between components\n\n"
             "Requirements:\n"
             f"{requirements}\n\n"
-            "Provide the architecture in JSON format with the following structure:\n"
+            "Provide ONLY the architecture in JSON format with the following structure (no other text):\n"
             "{\n"
             "  'modules': [\n"
             "    {\n"
@@ -26,8 +26,7 @@ class ArchitecturalDesignAgent:
             "      'description': 'Description of the module',\n"
             "      'file_name': 'module_name.py',\n"
             "      'dependencies': ['DependencyModule1', 'DependencyModule2']\n"
-            "    },\n"
-            "    ...\n"
+            "    }\n"
             "  ]\n"
             "}"
         )
@@ -38,14 +37,20 @@ class ArchitecturalDesignAgent:
         return architecture_json
 
     def clean_json_response(self, response):
-        # Extract JSON content from the response
-        json_str = re.search(r'\{.*\}', response, re.DOTALL)
-        if json_str:
-            json_str = json_str.group(0)
-            try:
-                architecture = json.loads(json_str)
-                return json.dumps(architecture, indent=2)
-            except json.JSONDecodeError:
-                raise ValueError("Failed to parse architecture JSON.")
-        else:
-            raise ValueError("No JSON content found in the response.")
+        # Remove any non-JSON content and fix common formatting issues
+        try:
+            # Try to parse the response directly first
+            return json.dumps(json.loads(response), indent=2)
+        except json.JSONDecodeError:
+            # If direct parsing fails, try to extract JSON content
+            json_str = re.search(r'\{[\s\S]*\}', response)
+            if json_str:
+                try:
+                    # Replace single quotes with double quotes
+                    fixed_json = json_str.group(0).replace("'", '"')
+                    architecture = json.loads(fixed_json)
+                    return json.dumps(architecture, indent=2)
+                except json.JSONDecodeError:
+                    raise ValueError("Failed to parse architecture JSON.")
+            else:
+                raise ValueError("No JSON content found in the response.")
